@@ -26,8 +26,59 @@ if ($result) {
             'created_at' => $row['created_at'],
         ];
     }
+}
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = isset($_POST['action']) ? trim($_POST['action']) : null;
+
+    if ($action === 'new') {
+        // Ajouter une nouvelle tâche (name="title")
+        $title = isset($_POST['title']) ? trim($_POST['title']) : '';
+        if ($title !== '') {
+            $stmt = $mysqli->prepare("INSERT INTO todo (title) VALUES (?)");
+            $stmt->bind_param("s", $title);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } elseif ($action === 'delete') {
+        // Supprimer une tâche (name="id")
+        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        if ($id > 0) {
+            $stmt = $mysqli->prepare("DELETE FROM todo WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } elseif ($action === 'toggle') {
+        // Basculer done entre true/false (name="id")
+        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        if ($id > 0) {
+            // Indication fournie dans l'énoncé
+            $stmt = $mysqli->prepare("UPDATE todo SET done = 1 - done WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+
+    // Post/Redirect/Get
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
+$taches = [];
+$result = $mysqli->query("SELECT id, title, done, created_at FROM todo ORDER BY created_at DESC, id DESC");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $taches[] = (object)[
+            'id' => (int)$row['id'],
+            'title' => $row['title'],
+            'done' => (int)$row['done'],
+            'created_at' => $row['created_at'],
+        ];
+    }
+
     $result->free();
 }
+$mysqli->close();
 ?>
 
 <!DOCTYPE html>
